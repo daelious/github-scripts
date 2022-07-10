@@ -49,6 +49,32 @@ function remove_tags() {
   declare -a TAGS_TO_REMOVE
   TAGS=($TAGS_QUERY)
 
+  for ((index=0; index < ${#TAGS[*]}; index=index+2));
+  do
+    
+    TAG_DATE=$(date -d "${TAGS[$index]}" +%s)
+    if [[ $TAG_DATE < $DATE ]] && [ "$LATEST_TAG" != "${TAGS[($index+1)]}" ]; then
+      if [ "$LATEST_TAG" != "${TAGS[($index+1)]}" ]; then
+        TAGS_TO_REMOVE+=("${TAGS[($index+1)]}")
+      fi
+    fi
+  done
+
+  # Do the removal/report
+  if $DRY_RUN == true; then
+    echo "The following tags would be deleted:"
+  fi
+
+  for tag in ${TAGS_TO_REMOVE[@]}; do
+    if $DRY_RUN == false; then
+      git tag -d "$tag"     # Remove local
+      if $LOCAL_ONLY == false; then
+        git push --delete origin "$tag"
+      fi
+    else
+      echo "$tag"
+    fi
+  done
  
   # Cleanup
   cd ..
@@ -71,3 +97,6 @@ while :; do
     *               ) usage                     exit    ;;
   esac  
 done
+
+validate
+remove_tags
