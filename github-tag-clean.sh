@@ -32,6 +32,29 @@ function validate() {
   fi
 }
 
+function remove_tags() {
+  PROJECT_NAME=$(basename $REPO)
+  PROJECT_NAME=${PROJECT_NAME%.*} # Adjust in case the .git path is used.
+  git clone --quiet $REPO
+  cd $PROJECT_NAME
+
+  # Determine Latest Tag
+  LATEST_TAG=$(git describe --tags --abbrev=0)
+
+  TAGS_QUERY=$(git for-each-ref --sort=taggerdate --format='%(tag)___%(taggerdate:raw)' refs/tags \
+  | grep -v '^___' \
+  | awk 'BEGIN {FS="___"} {t=strftime("%Y-%m-%d",$2); printf("%s %s\n", t, $1)}')
+ 
+  declare -a TAGS
+  declare -a TAGS_TO_REMOVE
+  TAGS=($TAGS_QUERY)
+
+ 
+  # Cleanup
+  cd ..
+  rm -rf $PROJECT_NAME 
+}
+
 short_args=d:r:Dlh
 long_args=date:,repo:,dry-run,local-only,help
 SCRIPT_ARGS=$(getopt -o $short_args --long $long_args -- "$@")
